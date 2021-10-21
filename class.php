@@ -74,44 +74,43 @@ class SaleOrderAjax extends \CBitrixComponent
 	protected $isRequestViaAjax;
 
 	[...]
-    
-    protected function createShipment() {
-        $shipmentCollection = $this->order->getShipmentCollection();
+	
+	protected function createShipment() {
+		$shipmentCollection = $this->order->getShipmentCollection();
 
-        if (intval($this->request['delivery_id']) > 0) {
-            $shipment = $shipmentCollection->createItem(
-                Bitrix\Sale\Delivery\Services\Manager::getObjectById(
-                    intval($this->request['delivery_id'])
-                )
-            );
-        } else {
-            $shipment = $shipmentCollection->createItem();
-        }
-        
-        $shipmentItemCollection = $shipment->getShipmentItemCollection();
-        $shipment->setField('CURRENCY', $this->order->getCurrency());
+		if (intval($this->request['delivery_id']) > 0) {
+			$shipment = $shipmentCollection->createItem(
+				Bitrix\Sale\Delivery\Services\Manager::getObjectById(
+					intval($this->request['delivery_id'])
+				)
+			);
+		} else {
+			$shipment = $shipmentCollection->createItem();
+		}
+		
+		$shipmentItemCollection = $shipment->getShipmentItemCollection();
+		$shipment->setField('CURRENCY', $this->order->getCurrency());
 
-        foreach ($this->order->getBasket()->getOrderableItems() as $item) {
-            $shipmentItem = $shipmentItemCollection->createItem($item);
-            $shipmentItem->setQuantity($item->getQuantity());
-        }
-    }
-    
-    protected function createPaymentSystem() {
-        if (intval($this->request['payment_id']) > 0) {
-            $paymentCollection = $this->order->getPaymentCollection();
-            $payment = $paymentCollection->createItem(
-                Bitrix\Sale\PaySystem\Manager::getObjectById(
-                    intval($this->request['payment_id'])
-                )
-            );
-            $payment->setField("SUM", $this->order->getPrice());
-            $payment->setField("CURRENCY", $this->order->getCurrency());
-        }
-    }
+		foreach ($this->order->getBasket()->getOrderableItems() as $item) {
+			$shipmentItem = $shipmentItemCollection->createItem($item);
+			$shipmentItem->setQuantity($item->getQuantity());
+		}
+	}
+	
+	protected function createPaymentSystem() {
+		if (intval($this->request['payment_id']) > 0) {
+			$paymentCollection = $this->order->getPaymentCollection();
+			$payment = $paymentCollection->createItem(
+				Bitrix\Sale\PaySystem\Manager::getObjectById(
+					intval($this->request['payment_id'])
+				)
+			);
+			$payment->setField("SUM", $this->order->getPrice());
+			$payment->setField("CURRENCY", $this->order->getCurrency());
+		}
+	}
 
-	protected function createVirtualOrder()
-	{
+	protected function createVirtualOrder() {
 		global $USER;
  
 		try {
@@ -130,18 +129,17 @@ class SaleOrderAjax extends \CBitrixComponent
 			$this->order->setBasket($basketItems);
 
 			$this->setOrderProps();
-            $this->createShipment();
-            $this->createPaymentSystem();
-            
+			$this->createShipment();
+			$this->createPaymentSystem();
+			
 		} catch (\Exception $e) {
 			$this->errors[] = $e->getMessage();
 		}
 	}
 
-	protected function setOrderProps()
-	{
+	protected function setOrderProps() {
 		global $USER;
-        
+		
 		$arUser = $USER->GetByID(intval($USER->GetID()))
 			->Fetch();
  
@@ -157,20 +155,17 @@ class SaleOrderAjax extends \CBitrixComponent
 			switch ($prop->getField('CODE')) {
 				case 'FIO':
 					$value = trim($this->request['fio']);
- 
-					if (empty($value)) {
-						$value = $arUser['FIO'];
-					}
+					if (empty($value)) $value = $arUser['FIO'];
 					break;
-                    
+					
 				case 'EMAIL':
 					$value = trim($this->request['email']);
 					break;
-                    
+					
 				case 'PHONE':
 					$value = trim($this->request['phone']);
 					break;
-                    
+					
 				case 'COMMENT':
 					$value = trim($this->request['comment']);
 					break;
@@ -195,118 +190,116 @@ class SaleOrderAjax extends \CBitrixComponent
 			}
 		}
 	}
-    
-    protected function checkUser() {
-        global $USER;
-        
-        $login = preg_replace("/[^,.0-9]/", '', $this->request['phone']);
-        
-        $arFilter['LOGIN'] = $login;
-        $dbUsers = CUser::GetList(($by="id"), ($order="desc"), $arFilter);
-        while ($arUser = $dbUsers->Fetch())
-        {
-            $userId = $arUser["ID"];
-            $userLogin = $arUser["LOGIN"];
-        }
-        
-        if(empty($userLogin)) {
-            $this->regUser();
-        }
-        else {
-            $arAuthResult = $USER->Authorize($userId);
-        }
-    }
-    
-    protected function regUser() {
-        $arr_username = explode(" ", $this->request['fio']);
-        if(count($arr_username) == 1) {
-            $arr_username[1] = $arr_username[0];
-            $arr_username[0] = "";
-        }
-        
-        $arr_group_ids = array(6);
-        $company_name = "";
+	
+	protected function checkUser() {
+		global $USER;
+		
+		$login = preg_replace("/[^,.0-9]/", '', $this->request['phone']);
+		
+		$arFilter['LOGIN'] = $login;
+		$dbUsers = CUser::GetList(($by="id"), ($order="desc"), $arFilter);
+		while ($arUser = $dbUsers->Fetch())
+		{
+			$userId = $arUser["ID"];
+			$userLogin = $arUser["LOGIN"];
+		}
+		
+		if(empty($userLogin)) {
+			$this->regUser();
+		}
+		else {
+			$arAuthResult = $USER->Authorize($userId);
+		}
+	}
+	
+	protected function regUser() {
+		$arr_username = explode(" ", $this->request['fio']);
+		if(count($arr_username) == 1) {
+			$arr_username[1] = $arr_username[0];
+			$arr_username[0] = "";
+		}
+		
+		$arr_group_ids = array(6);
+		$company_name = "";
 
-        $default_group = "individuals_users";
-        switch ($default_group) {
-            case "individuals_users":
-                $arr_group_ids = array(6, 9);
-                break;
-            case "legal_users":
-                $arr_group_ids = array(6, 10);
-                $company_name = $_POST["company_name"];
-                break;
-        }
-        
-        $login = preg_replace("/[^,.0-9]/", '', $this->request['phone']);
-        $password = Random::getString(10);
-        
-        $arFields = Array(
-          "NAME"              => $arr_username[1],
-          "LAST_NAME"         => $arr_username[0],
-          "SECOND_NAME"       => $arr_username[2],
-          "EMAIL"             => $this->request['email'],
-          "LOGIN"             => $login,
-          "PHONE_NUMBER"      => $this->request['phone'],
-          "PERSONAL_PHONE"    => $this->request['phone'],
-          "LID"               => SITE_ID,
-          "ACTIVE"            => "Y",
-          "UF_COMPANY_NAME"   => $company_name,
-          "GROUP_ID"          => $arr_group_ids, //Зарегистрированные пользователи + физ или юр лица
-          "PASSWORD"          => $password,
-          "CONFIRM_PASSWORD"  => $password,
-        );
+		$default_group = "individuals_users";
+		switch ($default_group) {
+			case "individuals_users":
+				$arr_group_ids = array(6, 9);
+				break;
+			case "legal_users":
+				$arr_group_ids = array(6, 10);
+				$company_name = $_POST["company_name"];
+				break;
+		}
+		
+		$login = preg_replace("/[^,.0-9]/", '', $this->request['phone']);
+		$password = Random::getString(10);
+		
+		$arFields = Array(
+		  "NAME"              => $arr_username[1],
+		  "LAST_NAME"         => $arr_username[0],
+		  "SECOND_NAME"       => $arr_username[2],
+		  "EMAIL"             => $this->request['email'],
+		  "LOGIN"             => $login,
+		  "PHONE_NUMBER"      => $this->request['phone'],
+		  "PERSONAL_PHONE"    => $this->request['phone'],
+		  "LID"               => SITE_ID,
+		  "ACTIVE"            => "Y",
+		  "UF_COMPANY_NAME"   => $company_name,
+		  "GROUP_ID"          => $arr_group_ids,
+		  "PASSWORD"          => $password,
+		  "CONFIRM_PASSWORD"  => $password,
+		);
 
-        $USER_ID = CUser::Add($arFields);
+		$USER_ID = CUser::Add($arFields);
 
-        if (intval($USER_ID) > 0){
-            $arAuthResult = CUser::Login($login, $password, "Y");
-            $arEventFields = array(
-                "USER_EMAIL" => $this->request['email'],
-                "LOGIN" => $login,
-                "PASSWORD" => $password,
-            );
-            
-            CEvent::Send("REG_USER_BASKET", SITE_ID, $arEventFields);
-            
-        }else{
-            $result['status'] = 'error';
-            $result['message'] = html_entity_decode(CUser::LAST_ERROR);
-            
-            exit(json_encode($result));
-        }
-    }
+		if (intval($USER_ID) > 0){
+			$arAuthResult = CUser::Login($login, $password, "Y");
+			$arEventFields = array(
+				"USER_EMAIL" => $this->request['email'],
+				"LOGIN" => $login,
+				"PASSWORD" => $password,
+			);
+			
+			CEvent::Send("REG_USER_BASKET", SITE_ID, $arEventFields);
+			
+		}else{
+			$result['status'] = 'error';
+			$result['message'] = html_entity_decode(CUser::LAST_ERROR);
+			
+			exit(json_encode($result));
+		}
+	}
 
-	public function executeComponent()
-	{
-        global $USER;
-        global $APPLICATION;
-        
+	public function executeComponent() {
+		global $USER;
+		global $APPLICATION;
+		
 		if($this->request->isPost() && $this->request["add_order"]) {
-            
+			
 			$APPLICATION->RestartBuffer();
-            
-            $user_id = $USER->GetID();
-            if(empty($user_id) || $user_id == 0) {
-                $this->checkUser();
-            }
+			
+			$user_id = $USER->GetID();
+			if(empty($user_id) || $user_id == 0) {
+				$this->checkUser();
+			}
 
 			$this->createVirtualOrder();
 			$this->order->save();
-            $res = $this->order->save();
-            if ($res->isSuccess())
-            {
-                $arResult["ORDER_ID"] = $res->getId();
-                $arResult["ACCOUNT_NUMBER"] = $this->order->getField('ACCOUNT_NUMBER');
-                $result['status'] = "success";
-                $result['order_id'] = $arResult["ORDER_ID"];
-                
-            }
-            else {
-                $result['status'] = "error";
-            }
-            
-            exit(json_encode($result));
+			$res = $this->order->save();
+			if ($res->isSuccess())
+			{
+				$arResult["ORDER_ID"] = $res->getId();
+				$arResult["ACCOUNT_NUMBER"] = $this->order->getField('ACCOUNT_NUMBER');
+				$result['status'] = "success";
+				$result['order_id'] = $arResult["ORDER_ID"];
+			}
+			else {
+				$result['status'] = "error";
+			}
+			
+			exit(json_encode($result));
 		}
 		else {
 			$this->setFrameMode(false);
