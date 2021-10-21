@@ -277,7 +277,6 @@ class SaleOrderAjax extends \CBitrixComponent
 		global $APPLICATION;
 		
 		if($this->request->isPost() && $this->request["add_order"]) {
-			
 			$APPLICATION->RestartBuffer();
 			
 			$user_id = $USER->GetID();
